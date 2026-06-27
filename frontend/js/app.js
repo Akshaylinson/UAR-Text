@@ -1,0 +1,84 @@
+const API_BASE = "http://localhost:8000";
+
+async function loadDashboard() {
+  const el = document.getElementById("stats");
+  if (!el) return;
+  const render = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/runtime/stats`);
+      const data = await res.json();
+      el.innerHTML = `
+        <article class="stat"><span>Active Model</span><strong>${data.active_model}</strong></article>
+        <article class="stat"><span>CPU Usage</span><strong>${data.cpu_usage_percent}%</strong></article>
+        <article class="stat"><span>RAM Usage</span><strong>${data.ram_usage_percent}%</strong></article>
+        <article class="stat"><span>Tokens / sec</span><strong>${data.tokens_per_second}</strong></article>
+        <article class="stat"><span>Loaded Layers</span><strong>${(data.loaded_layers || []).join(", ") || "none"}</strong></article>
+        <article class="stat"><span>Active Layer Count</span><strong>${data.active_layers_count}</strong></article>
+      `;
+    } catch (error) {
+      el.innerHTML = `<article class="stat"><span>Error</span><strong>${error.message}</strong></article>`;
+    }
+  };
+  await render();
+  setInterval(render, 3000);
+}
+
+async function loadRuntimeViewer() {
+  const el = document.getElementById("layers");
+  if (!el) return;
+  const res = await fetch(`${API_BASE}/api/runtime/stats`);
+  const data = await res.json();
+  const layers = data.loaded_layers || [];
+  const cards = [];
+  for (let index = 0; index < Math.max(8, layers.length + 2); index += 1) {
+    const id = index + 1;
+    const state = layers.includes(index) ? "Loaded" : (index === 0 ? "Executing" : "Unloaded");
+    cards.push(`<article class="layer-card"><span>Layer ${id}</span><strong>${state}</strong></article>`);
+  }
+  el.innerHTML = cards.join("");
+}
+
+function setupChat() {
+  const form = document.getElementById("chatForm");
+  const input = document.getElementById("promptInput");
+  const log = document.getElementById("chatLog");
+  if (!form || !input || !log) return;
+
+  const socket = new WebSocket("ws://localhost:8000/ws/chat");
+
+  const addBubble = (role, text) => {
+    const bubble = document.createElement("div");
+    bubble.className = `bubble ${role}`;
+    bubble.textContent = text;
+    log.appendChild(bubble);
+    log.scrollTop = log.scrollHeight;
+    return bubble;
+  };
+
+  let activeBubble = null;
+
+  socket.addEventListener("message", (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === "token") {
+      if (!activeBubble) activeBubble = addBubble("assistant", "");
+      activeBubble.textContent = `${activeBubble.textContent} ${message.value}`.trim();
+    }
+    if (message.type === "done") {
+      activeBubble = null;
+    }
+  });
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const prompt = input.value.trim();
+    if (!prompt || socket.readyState !== WebSocket.OPEN) return;
+    addBubble("user", prompt);
+    socket.send(JSON.stringify({ prompt }));
+    input.value = "";
+  });
+}
+
+loadDashboard();
+loadRuntimeViewer();
+setupChat();
+
