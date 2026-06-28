@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+import os
 
 from .api.routes.health import router as health_router
 from .api.routes.hardware import router as hardware_router
@@ -32,6 +35,15 @@ app.include_router(hardware_router)
 app.include_router(model_router)
 app.include_router(inference_router)
 app.include_router(runtime_router)
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/ui/index.html")
+
+
+_frontend = os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend")
+app.mount("/ui", StaticFiles(directory=_frontend), name="frontend")
 
 
 @app.websocket("/ws/chat")

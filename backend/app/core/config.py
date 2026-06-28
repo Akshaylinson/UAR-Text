@@ -14,6 +14,8 @@ def _env_int(name: str, default: int) -> int:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "Universal AI Runtime")
+    host: str = os.getenv("HOST", "0.0.0.0")
+    port: int = _env_int("PORT", 8000)
     model_name: str = os.getenv(
         "MODEL_NAME", "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     )
