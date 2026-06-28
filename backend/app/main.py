@@ -42,7 +42,12 @@ async def root():
     return RedirectResponse(url="/ui/index.html")
 
 
-_frontend = os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend")
+_frontend = os.environ.get(
+    "FRONTEND_DIR",
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend")
+)
+if not os.path.isdir(_frontend):
+    _frontend = "/app/frontend"
 app.mount("/ui", StaticFiles(directory=_frontend), name="frontend")
 
 
