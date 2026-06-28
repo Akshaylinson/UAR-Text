@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import time
+from collections import deque
 from dataclasses import dataclass, field
 
 from ..core.config import settings
@@ -24,6 +26,7 @@ class RuntimeState:
     last_prompt: str = ""
     last_response: str = ""
     last_duration: float = 0.0
+    executing_layer: int | None = None
 
 
 class RuntimeController:
@@ -37,6 +40,27 @@ class RuntimeController:
         self.cache_manager = CacheManager(max_items=settings.cache_size)
         self.scheduler = Scheduler(version=1)
         self.state = RuntimeState()
+        self.log_buffer: deque[dict] = deque(maxlen=200)
+        self._log_subscribers: list[asyncio.Queue] = []
+
+    def _emit(self, event: str, data: dict) -> None:
+        entry = {"event": event, "ts": round(time.time() * 1000), **data}
+        self.log_buffer.append(entry)
+        for q in self._log_subscribers:
+            try:
+                q.put_nowait(entry)
+            except asyncio.QueueFull:
+                pass
+
+    def subscribe_logs(self) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue(maxsize=100)
+        self._log_subscribers.append(q)
+        return q
+
+    def unsubscribe_logs(self, q: asyncio.Queue) -> None:
+        self._log_subscribers.discard(q) if hasattr(self._log_subscribers, 'discard') else (
+            self._log_subscribers.remove(q) if q in self._log_subscribers else None
+        )
 
     def load_model(self, model_name: str | None = None) -> dict:
         model_name = model_name or settings.model_name
@@ -92,9 +116,13 @@ class RuntimeController:
         token_ids = self.tokenizer.encode(prompt)
         planned_layers = self.scheduler.plan(prompt, self.state.layer_count or 32)
         active_layers = []
+        self._emit("inference_start", {"prompt_len": len(prompt), "planned": len(planned_layers)})
         for layer_id in planned_layers[: settings.max_active_layers]:
+            self._emit("layer_load", {"layer_id": layer_id})
             self.layer_loader.load_layer(layer_id)
             active_layers.append(layer_id)
+            self.state.executing_layer = layer_id
+            self._emit("layer_execute", {"layer_id": layer_id})
             self.memory_manager.track_layer(layer_id)
             self.cache_manager.set(f"layer:{layer_id}", {"loaded": True})
 
@@ -118,7 +146,10 @@ class RuntimeController:
         )
         for layer_id in self.memory_manager.evict_if_needed(ram_usage_percent):
             self.layer_loader.unload_layer(layer_id)
+            self._emit("layer_unload", {"layer_id": layer_id})
+        self.state.executing_layer = None
         self.state.loaded_layers = self.layer_loader.list_loaded_layers()
+        self._emit("inference_done", {"tps": round(token_count / duration, 2)})
         self.state.last_prompt = prompt
         self.state.last_response = response
         self.state.last_duration = duration

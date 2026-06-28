@@ -5,19 +5,205 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>UAR Dashboard</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+    .dash-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 860px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    .section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin: 0 0 14px; }
+
+    /* stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .stat { padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+    .stat span { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+    .stat strong { font-size: 1.35rem; color: var(--accent); }
+
+    /* layer grid */
+    .layer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+    .layer-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.62rem; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      cursor: default;
+    }
+    .layer-cell.loaded   { background: rgba(124,196,255,0.15); border-color: rgba(124,196,255,0.4); color: var(--accent); }
+    .layer-cell.executing{ background: rgba(125,240,194,0.25); border-color: rgba(125,240,194,0.6); color: var(--accent-2); box-shadow: 0 0 10px rgba(125,240,194,0.3); }
+
+    /* legend */
+    .legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .legend-dot.unloaded { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); }
+    .legend-dot.loaded   { background: rgba(124,196,255,0.4); }
+    .legend-dot.executing{ background: rgba(125,240,194,0.5); }
+
+    /* log panel */
+    .log-panel {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 14px 16px;
+      height: 220px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.76rem;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .log-entry { display: flex; gap: 10px; }
+    .log-ts { color: rgba(255,255,255,0.25); white-space: nowrap; }
+    .log-msg { color: var(--text); }
+    .log-msg.layer_load    { color: var(--accent); }
+    .log-msg.layer_execute { color: var(--accent-2); }
+    .log-msg.layer_unload  { color: #ff9f7c; }
+    .log-msg.inference_start { color: #c4b5fd; }
+    .log-msg.inference_done  { color: #86efac; }
+
+    /* model info */
+    .model-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .meta-item { font-size: 0.8rem; }
+    .meta-item span { color: var(--muted); display: block; font-size: 0.68rem; margin-bottom: 2px; }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #ff6b6b; }
+    .status-dot.ok { background: var(--accent-2); box-shadow: 0 0 6px var(--accent-2); }
+  </style>
 </head>
 <body class="page-shell">
   <main class="panel">
     <header class="panel-header">
       <div>
-        <p class="eyebrow">Dashboard</p>
-        <h1>Runtime overview</h1>
+        <p class="eyebrow">Universal AI Runtime</p>
+        <h1 style="font-size:1.8rem">
+          <span class="status-dot" id="statusDot"></span>Dashboard
+        </h1>
       </div>
-      <a class="button secondary" href="index.html">Home</a>
+      <div style="display:flex;gap:10px">
+        <a class="button secondary" href="chat.html">Chat</a>
+        <a class="button secondary" href="runtime.html">Runtime</a>
+        <a class="button secondary" href="index.html">Home</a>
+      </div>
     </header>
-    <section class="grid" id="stats"></section>
+
+    <div class="dash-grid">
+
+      <!-- Stats -->
+      <div class="full">
+        <p class="section-title">Runtime Stats</p>
+        <div class="stats-row" id="statsRow">
+          <div class="stat"><span>Active Model</span><strong id="s-model">—</strong></div>
+          <div class="stat"><span>Provider</span><strong id="s-provider">—</strong></div>
+          <div class="stat"><span>CPU</span><strong id="s-cpu">—</strong></div>
+          <div class="stat"><span>RAM</span><strong id="s-ram">—</strong></div>
+          <div class="stat"><span>Tokens / sec</span><strong id="s-tps">—</strong></div>
+          <div class="stat"><span>Active Layers</span><strong id="s-layers">—</strong></div>
+          <div class="stat"><span>Total Layers</span><strong id="s-total">—</strong></div>
+          <div class="stat"><span>Max Active</span><strong id="s-max">—</strong></div>
+        </div>
+      </div>
+
+      <!-- Layer Visualizer -->
+      <div class="full">
+        <p class="section-title">Layer Architecture — Real-time</p>
+        <div class="layer-grid" id="layerGrid"></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot unloaded"></div>Unloaded</div>
+          <div class="legend-item"><div class="legend-dot loaded"></div>Loaded</div>
+          <div class="legend-item"><div class="legend-dot executing"></div>Executing</div>
+        </div>
+      </div>
+
+      <!-- Live Logs -->
+      <div class="full">
+        <p class="section-title">Live Event Log</p>
+        <div class="log-panel" id="logPanel"></div>
+      </div>
+
+    </div>
   </main>
-  <script src="js/app.js"></script>
+
+  <script>
+    const BASE = `${location.protocol}//${location.host}`;
+    const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+
+    // --- Stats + Layer polling ---
+    async function fetchStats() {
+      try {
+        const [stats, layers] = await Promise.all([
+          fetch(`${BASE}/api/runtime/stats`).then(r => r.json()),
+          fetch(`${BASE}/api/runtime/layers`).then(r => r.json()),
+        ]);
+        document.getElementById('s-model').textContent    = stats.active_model || '—';
+        document.getElementById('s-cpu').textContent      = stats.cpu_usage_percent + '%';
+        document.getElementById('s-ram').textContent      = stats.ram_usage_percent + '%';
+        document.getElementById('s-tps').textContent      = stats.tokens_per_second;
+        document.getElementById('s-layers').textContent   = stats.active_layers_count;
+        document.getElementById('s-total').textContent    = layers.total;
+        document.getElementById('s-max').textContent      = layers.max_active;
+        document.getElementById('statusDot').className    = 'status-dot ok';
+
+        // try to get provider from model info (cached)
+        if (!document.getElementById('s-provider')._loaded) {
+          fetch(`${BASE}/api/model/info`).then(r => r.json()).then(m => {
+            document.getElementById('s-provider').textContent = m.provider || '—';
+            document.getElementById('s-provider')._loaded = true;
+          }).catch(() => {});
+        }
+
+        renderLayers(layers);
+      } catch (e) {
+        document.getElementById('statusDot').className = 'status-dot';
+      }
+    }
+
+    function renderLayers(data) {
+      const grid = document.getElementById('layerGrid');
+      if (grid.children.length !== data.total) {
+        grid.innerHTML = data.layers.map(l =>
+          `<div class="layer-cell" id="lc-${l.id}" title="Layer ${l.id}">${l.id}</div>`
+        ).join('');
+      }
+      data.layers.forEach(l => {
+        const el = document.getElementById(`lc-${l.id}`);
+        if (el) el.className = `layer-cell ${l.state}`;
+      });
+    }
+
+    // --- Log WebSocket ---
+    function connectLogs() {
+      const panel = document.getElementById('logPanel');
+      const ws = new WebSocket(`${WS_BASE}/ws/logs`);
+
+      const fmt = {
+        inference_start: (d) => `Inference started — ${d.planned} layers planned`,
+        inference_done:  (d) => `Inference done — ${d.tps} tok/s`,
+        layer_load:      (d) => `Layer ${d.layer_id} → loaded`,
+        layer_execute:   (d) => `Layer ${d.layer_id} → executing`,
+        layer_unload:    (d) => `Layer ${d.layer_id} → evicted`,
+      };
+
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        const time = new Date(msg.ts).toISOString().slice(11, 23);
+        const text = fmt[msg.event] ? fmt[msg.event](msg) : msg.event;
+        const row = document.createElement('div');
+        row.className = 'log-entry';
+        row.innerHTML = `<span class="log-ts">${time}</span><span class="log-msg ${msg.event}">${text}</span>`;
+        panel.appendChild(row);
+        panel.scrollTop = panel.scrollHeight;
+        // keep at most 300 rows
+        while (panel.children.length > 300) panel.removeChild(panel.firstChild);
+      };
+
+      ws.onclose = () => setTimeout(connectLogs, 2000);
+    }
+
+    fetchStats();
+    setInterval(fetchStats, 2000);
+    connectLogs();
+  </script>
 </body>
 </html>
-
