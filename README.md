@@ -1,6 +1,12 @@
 # Universal AI Runtime
 
 UAR is a FastAPI-based runtime scaffold for layer-aware LLM execution.
+Page	URL
+Dashboard	http://128.30.9.8:8000/ui/dashboard.html
+Chat	http://128.30.9.8:8000/ui/chat.html
+Runtime	http://128.30.9.8:8000/ui/runtime.html
+Root (redirects to index)	http://128.30.9.8:8000/
+API Docs	http://128.30.9.8:8000/docs
 
 ## What is included
 

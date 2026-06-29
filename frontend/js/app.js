@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = `${window.location.protocol}//${window.location.host}`;
+const WS_BASE = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
 
 async function loadDashboard() {
   const el = document.getElementById("stats");
@@ -44,7 +45,7 @@ function setupChat() {
   const log = document.getElementById("chatLog");
   if (!form || !input || !log) return;
 
-  const socket = new WebSocket("ws://localhost:8000/ws/chat");
+  const socket = new WebSocket(`${WS_BASE}/ws/chat`);
 
   const addBubble = (role, text) => {
     const bubble = document.createElement("div");
@@ -81,4 +82,3 @@ function setupChat() {
 loadDashboard();
 loadRuntimeViewer();
 setupChat();
-
