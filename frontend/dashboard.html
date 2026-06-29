@@ -126,15 +126,43 @@
   </main>
 
   <script>
-    const BASE = `${location.protocol}//${location.host}`;
-    const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+    function resolveApiBase() {
+      const override = window.UAR_API_BASE || localStorage.getItem('UAR_API_BASE');
+      if (override) return override.replace(/\/$/, '');
+
+      const isStaticDevServer = ['5500', '3000', '4173', '8080'].includes(location.port);
+      if (isStaticDevServer) {
+        return 'http://127.0.0.1:8000';
+      }
+
+      return `${location.protocol}//${location.host}`;
+    }
+
+    const BASE = resolveApiBase();
+    const WS_BASE = BASE.startsWith('https:')
+      ? BASE.replace(/^https:/, 'wss:')
+      : BASE.startsWith('http:')
+        ? BASE.replace(/^http:/, 'ws:')
+        : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
 
     // --- Stats + Layer polling ---
     async function fetchStats() {
       try {
+        const [statsResponse, layersResponse] = await Promise.all([
+          fetch(`${BASE}/api/runtime/stats`),
+          fetch(`${BASE}/api/runtime/layers`),
+        ]);
+
+        if (!statsResponse.ok) {
+          throw new Error(`stats ${statsResponse.status}`);
+        }
+        if (!layersResponse.ok) {
+          throw new Error(`layers ${layersResponse.status}`);
+        }
+
         const [stats, layers] = await Promise.all([
-          fetch(`${BASE}/api/runtime/stats`).then(r => r.json()),
-          fetch(`${BASE}/api/runtime/layers`).then(r => r.json()),
+          statsResponse.json(),
+          layersResponse.json(),
         ]);
         document.getElementById('s-model').textContent    = stats.active_model || '—';
         document.getElementById('s-cpu').textContent      = stats.cpu_usage_percent + '%';
@@ -155,6 +183,7 @@
 
         renderLayers(layers);
       } catch (e) {
+        document.getElementById('s-provider').textContent = 'offline';
         document.getElementById('statusDot').className = 'status-dot';
       }
     }
@@ -199,6 +228,9 @@
       };
 
       ws.onclose = () => setTimeout(connectLogs, 2000);
+      ws.onerror = () => {
+        panel.innerHTML = '<div class="log-entry"><span class="log-msg">Log stream unavailable</span></div>';
+      };
     }
 
     fetchStats();

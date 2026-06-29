@@ -1,5 +1,21 @@
-const API_BASE = `${window.location.protocol}//${window.location.host}`;
-const WS_BASE = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
+function resolveApiBase() {
+  const override = window.UAR_API_BASE || localStorage.getItem("UAR_API_BASE");
+  if (override) return override.replace(/\/$/, "");
+
+  const isStaticDevServer = ["5500", "3000", "4173", "8080"].includes(window.location.port);
+  if (isStaticDevServer) {
+    return "http://127.0.0.1:8000";
+  }
+
+  return `${window.location.protocol}//${window.location.host}`;
+}
+
+const API_BASE = resolveApiBase();
+const WS_BASE = API_BASE.startsWith("https:")
+  ? API_BASE.replace(/^https:/, "wss:")
+  : API_BASE.startsWith("http:")
+    ? API_BASE.replace(/^http:/, "ws:")
+    : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
 
 async function loadDashboard() {
   const el = document.getElementById("stats");
