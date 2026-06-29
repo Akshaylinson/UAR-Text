@@ -23,6 +23,9 @@ async function loadDashboard() {
   const render = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/runtime/stats`);
+      if (!res.ok) {
+        throw new Error(`${res.status}`);
+      }
       const data = await res.json();
       el.innerHTML = `
         <article class="stat"><span>Active Model</span><strong>${data.active_model}</strong></article>
@@ -33,7 +36,8 @@ async function loadDashboard() {
         <article class="stat"><span>Active Layer Count</span><strong>${data.active_layers_count}</strong></article>
       `;
     } catch (error) {
-      el.innerHTML = `<article class="stat"><span>Error</span><strong>${error.message}</strong></article>`;
+      const message = String(error?.message || error);
+      el.innerHTML = `<article class="stat"><span>Status</span><strong>${message.includes("Failed to fetch") || message.includes("ERR_CONNECTION_REFUSED") ? "Backend offline" : message}</strong></article>`;
     }
   };
   await render();

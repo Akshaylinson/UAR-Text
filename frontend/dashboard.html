@@ -145,8 +145,28 @@
         ? BASE.replace(/^http:/, 'ws:')
         : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
 
+    let statsTimer = null;
+    let logsSocket = null;
+    let backendOnline = true;
+
+    function markOffline(message) {
+      backendOnline = false;
+      if (statsTimer) clearInterval(statsTimer);
+      const provider = document.getElementById('s-provider');
+      if (provider) provider.textContent = message || 'offline';
+      document.getElementById('statusDot').className = 'status-dot';
+      const panel = document.getElementById('logPanel');
+      if (panel && !panel.children.length) {
+        panel.innerHTML = '<div class="log-entry"><span class="log-msg">Backend unavailable</span></div>';
+      }
+      if (logsSocket) {
+        try { logsSocket.close(); } catch (_) {}
+      }
+    }
+
     // --- Stats + Layer polling ---
     async function fetchStats() {
+      if (!backendOnline) return;
       try {
         const [statsResponse, layersResponse] = await Promise.all([
           fetch(`${BASE}/api/runtime/stats`),
@@ -183,8 +203,7 @@
 
         renderLayers(layers);
       } catch (e) {
-        document.getElementById('s-provider').textContent = 'offline';
-        document.getElementById('statusDot').className = 'status-dot';
+        markOffline('offline');
       }
     }
 
@@ -204,7 +223,8 @@
     // --- Log WebSocket ---
     function connectLogs() {
       const panel = document.getElementById('logPanel');
-      const ws = new WebSocket(`${WS_BASE}/ws/logs`);
+      if (!backendOnline) return;
+      logsSocket = new WebSocket(`${WS_BASE}/ws/logs`);
 
       const fmt = {
         inference_start: (d) => `Inference started — ${d.planned} layers planned`,
@@ -214,7 +234,7 @@
         layer_unload:    (d) => `Layer ${d.layer_id} → evicted`,
       };
 
-      ws.onmessage = (e) => {
+      logsSocket.onmessage = (e) => {
         const msg = JSON.parse(e.data);
         const time = new Date(msg.ts).toISOString().slice(11, 23);
         const text = fmt[msg.event] ? fmt[msg.event](msg) : msg.event;
@@ -227,14 +247,16 @@
         while (panel.children.length > 300) panel.removeChild(panel.firstChild);
       };
 
-      ws.onclose = () => setTimeout(connectLogs, 2000);
-      ws.onerror = () => {
-        panel.innerHTML = '<div class="log-entry"><span class="log-msg">Log stream unavailable</span></div>';
+      logsSocket.onclose = () => {
+        if (backendOnline) setTimeout(connectLogs, 2000);
+      };
+      logsSocket.onerror = () => {
+        markOffline('offline');
       };
     }
 
     fetchStats();
-    setInterval(fetchStats, 2000);
+    statsTimer = setInterval(fetchStats, 2000);
     connectLogs();
   </script>
 </body>

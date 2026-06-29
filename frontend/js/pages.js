@@ -21,12 +21,29 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-async function fetchJson(path, options) {
-  const response = await fetch(`${API_BASE}${path}`, options);
-  if (!response.ok) {
-    throw new Error(`${path} ${response.status}`);
+function showOfflineNotice() {
+  const box = byId("pageError");
+  if (box) {
+    box.textContent = `Backend unavailable at ${API_BASE}. Start FastAPI on port 8000 or set UAR_API_BASE.`;
+    box.className = "status-pill error";
   }
-  return response.json();
+}
+
+async function fetchJson(path, options) {
+  try {
+    const response = await fetch(`${API_BASE}${path}`, options);
+    if (!response.ok) {
+      throw new Error(`${path} ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (message.includes("Failed to fetch") || message.includes("ERR_CONNECTION_REFUSED") || message.includes("Load failed")) {
+      showOfflineNotice();
+      return {};
+    }
+    throw error;
+  }
 }
 
 async function postJson(path, body) {
