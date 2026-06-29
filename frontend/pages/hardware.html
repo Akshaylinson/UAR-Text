@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hardware Dashboard</title>
+  <link rel="stylesheet" href="/ui/css/style.css">
+</head>
+<body class="page-shell" data-page="hardware">
+  <main class="panel">
+    <header class="panel-header">
+      <div>
+        <p class="eyebrow">Module 5</p>
+        <h1>Hardware Dashboard</h1>
+      </div>
+      <a class="button secondary" href="/ui/index.html">Dashboard</a>
+    </header>
+        <nav class="page-nav">
+      <a class="button secondary" href="/ui/index.html">Home</a>
+      <a class="button secondary" href="/pages/model-explorer">Model Explorer</a>
+      <a class="button secondary" href="/pages/layers">Layers</a>
+      <a class="button secondary" href="/pages/runtime">Runtime</a>
+      <a class="button secondary" href="/pages/hardware">Hardware</a>
+      <a class="button secondary" href="/pages/scheduler">Scheduler</a>
+      <a class="button secondary" href="/pages/memory">Memory</a>
+      <a class="button secondary" href="/pages/tokens">Tokens</a>
+      <a class="button secondary" href="/pages/attention">Attention</a>
+      <a class="button secondary" href="/pages/metrics">Metrics</a>
+      <a class="button secondary" href="/pages/logs">Logs</a>
+      <a class="button secondary" href="/ui/chat.html">Chat</a>
+    </nav>
+    <div id="pageError" class="status-pill error" style="margin-bottom:16px"></div>
+        <section class="section-block">
+      <div class="metric-grid" id="hardwareSummary"></div>
+    </section>
+    <section class="section-block">
+      <h2>Realtime Charts</h2>
+      <div id="hardwareCharts"></div>
+    </section>
+  </main>
+  <script src="/ui/js/pages.js"></script>
+</body>
+</html>

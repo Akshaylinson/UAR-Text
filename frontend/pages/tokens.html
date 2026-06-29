@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token Visualization</title>
+  <link rel="stylesheet" href="/ui/css/style.css">
+</head>
+<body class="page-shell" data-page="tokens">
+  <main class="panel">
+    <header class="panel-header">
+      <div>
+        <p class="eyebrow">Module 8</p>
+        <h1>Token Visualization</h1>
+      </div>
+      <a class="button secondary" href="/ui/index.html">Dashboard</a>
+    </header>
+        <nav class="page-nav">
+      <a class="button secondary" href="/ui/index.html">Home</a>
+      <a class="button secondary" href="/pages/model-explorer">Model Explorer</a>
+      <a class="button secondary" href="/pages/layers">Layers</a>
+      <a class="button secondary" href="/pages/runtime">Runtime</a>
+      <a class="button secondary" href="/pages/hardware">Hardware</a>
+      <a class="button secondary" href="/pages/scheduler">Scheduler</a>
+      <a class="button secondary" href="/pages/memory">Memory</a>
+      <a class="button secondary" href="/pages/tokens">Tokens</a>
+      <a class="button secondary" href="/pages/attention">Attention</a>
+      <a class="button secondary" href="/pages/metrics">Metrics</a>
+      <a class="button secondary" href="/pages/logs">Logs</a>
+      <a class="button secondary" href="/ui/chat.html">Chat</a>
+    </nav>
+    <div id="pageError" class="status-pill error" style="margin-bottom:16px"></div>
+        <section class="section-block">
+      <div class="metric-grid" id="tokenSummary"></div>
+    </section>
+    <section class="section-block">
+      <h2>Input Tokens</h2>
+      <div id="inputTokens" class="pill-list"></div>
+    </section>
+    <section class="section-block">
+      <h2>Generated Tokens</h2>
+      <div id="generatedTokens" class="pill-list"></div>
+    </section>
+    <section class="section-block">
+      <h2>Top-K Predictions</h2>
+      <div id="topPredictions"></div>
+    </section>
+  </main>
+  <script src="/ui/js/pages.js"></script>
+</body>
+</html>

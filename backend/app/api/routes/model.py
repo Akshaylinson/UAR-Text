@@ -1,8 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from ...core.config import settings
 from ...runtime.runtime_controller import RuntimeController
 from ...schemas.model import ModelInfo, ModelLoadRequest
 
@@ -22,17 +21,50 @@ def load_model(
     return runtime.load_model(request.model_name)
 
 
+@router.post("/api/model/switch", response_model=ModelInfo)
+def switch_model(
+    request: ModelLoadRequest, runtime: RuntimeController = Depends(get_runtime)
+) -> dict:
+    return runtime.switch_model(request.model_name)
+
+
+@router.post("/api/model/unload")
+def unload_model(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.unload_model()
+
+
+@router.post("/api/model/reload", response_model=ModelInfo)
+def reload_model(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.reload_model()
+
+
+@router.post("/api/model/download")
+def download_model(
+    request: ModelLoadRequest, runtime: RuntimeController = Depends(get_runtime)
+) -> dict:
+    return runtime.download_model(request.model_name)
+
+
+@router.get("/api/model/list")
+def list_models(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return {"models": runtime.list_supported_models()}
+
+
 @router.get("/api/model/info", response_model=ModelInfo)
 def model_info(runtime: RuntimeController = Depends(get_runtime)) -> dict:
-    info = runtime.model_info()
-    metadata = info.get("metadata", {})
-    return {
-        "model_name": info["model_name"],
-        "loaded": info["loaded"],
-        "layer_count": info["layer_count"],
-        "provider": info["provider"],
-        "architecture": metadata.get("model_type", "transformer"),
-        "vocab_size": metadata.get("vocab_size", 32000),
-        "hidden_size": metadata.get("hidden_size", 0),
-    }
+    return runtime.model_info()
 
+
+@router.get("/api/model/layers")
+def model_layers(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.model_layers()
+
+
+@router.get("/api/model/architecture")
+def model_architecture(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.model_architecture()
+
+
+@router.get("/api/model/attention")
+def model_attention(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.model_attention()

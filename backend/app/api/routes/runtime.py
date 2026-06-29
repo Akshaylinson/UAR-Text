@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
@@ -10,6 +10,7 @@ router = APIRouter(tags=["runtime"])
 
 def get_runtime() -> RuntimeController:
     from ...main import runtime_controller
+
     return runtime_controller
 
 
@@ -31,16 +32,25 @@ def runtime_layers(runtime: RuntimeController = Depends(get_runtime)) -> dict:
                 "id": i,
                 "state": "executing" if i == executing else ("loaded" if i in loaded else "unloaded"),
             }
-            for i in range(total)
+            for i in range(1, total + 1)
         ],
     }
+
+
+@router.get("/api/runtime/logs")
+def runtime_logs(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return {"logs": runtime.runtime_logs()}
+
+
+@router.get("/api/runtime/tokens")
+def runtime_tokens(runtime: RuntimeController = Depends(get_runtime)) -> dict:
+    return runtime.token_summary()
 
 
 @router.websocket("/ws/logs")
 async def log_stream(websocket: WebSocket, runtime: RuntimeController = Depends(get_runtime)) -> None:
     await websocket.accept()
     q = runtime.subscribe_logs()
-    # send buffered history first
     for entry in list(runtime.log_buffer):
         await websocket.send_json(entry)
     try:
@@ -49,4 +59,3 @@ async def log_stream(websocket: WebSocket, runtime: RuntimeController = Depends(
             await websocket.send_json(entry)
     except (WebSocketDisconnect, Exception):
         runtime.unsubscribe_logs(q)
-

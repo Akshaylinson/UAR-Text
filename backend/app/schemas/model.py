@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,12 @@ class ModelInfo(BaseModel):
     loaded: bool
     layer_count: int
     provider: str
+    model_family: str = "unknown"
+    model_type: str = "transformer"
     architecture: str = "transformer"
-    vocab_size: int = 32000
+    parameter_count: int = 0
+    size_gb: float = 0.0
+    context_window: int = 0
     hidden_size: int = 0
-
+    vocab_size: int = 32000
+    attention_heads: int = 0

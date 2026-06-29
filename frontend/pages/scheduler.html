@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scheduler Dashboard</title>
+  <link rel="stylesheet" href="/ui/css/style.css">
+</head>
+<body class="page-shell" data-page="scheduler">
+  <main class="panel">
+    <header class="panel-header">
+      <div>
+        <p class="eyebrow">Module 6</p>
+        <h1>Scheduler Dashboard</h1>
+      </div>
+      <a class="button secondary" href="/ui/index.html">Dashboard</a>
+    </header>
+        <nav class="page-nav">
+      <a class="button secondary" href="/ui/index.html">Home</a>
+      <a class="button secondary" href="/pages/model-explorer">Model Explorer</a>
+      <a class="button secondary" href="/pages/layers">Layers</a>
+      <a class="button secondary" href="/pages/runtime">Runtime</a>
+      <a class="button secondary" href="/pages/hardware">Hardware</a>
+      <a class="button secondary" href="/pages/scheduler">Scheduler</a>
+      <a class="button secondary" href="/pages/memory">Memory</a>
+      <a class="button secondary" href="/pages/tokens">Tokens</a>
+      <a class="button secondary" href="/pages/attention">Attention</a>
+      <a class="button secondary" href="/pages/metrics">Metrics</a>
+      <a class="button secondary" href="/pages/logs">Logs</a>
+      <a class="button secondary" href="/ui/chat.html">Chat</a>
+    </nav>
+    <div id="pageError" class="status-pill error" style="margin-bottom:16px"></div>
+        <section class="section-block">
+      <div class="metric-grid" id="schedulerSummary"></div>
+      <div id="strategyChip" class="status-pill good" style="margin-top:12px">Loading...</div>
+    </section>
+    <section class="section-block">
+      <h2>Execution Plan</h2>
+      <div id="executionPlan" class="pill-list"></div>
+    </section>
+    <section class="section-block">
+      <h2>Selected Layers</h2>
+      <div id="selectedLayers" class="pill-list"></div>
+    </section>
+    <section class="section-block">
+      <h2>Skipped Layers</h2>
+      <div id="skippedLayers" class="pill-list"></div>
+    </section>
+  </main>
+  <script src="/ui/js/pages.js"></script>
+</body>
+</html>
